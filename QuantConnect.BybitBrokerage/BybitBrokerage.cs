@@ -234,7 +234,9 @@ public partial class BybitBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler
             return;
         }
 
-        ValidateSubscription();
+        // DISABLED: QC subscription validation requires QuantConnect account.
+        // Running locally with self-built Lean, no QC account needed.
+        // ValidateSubscription();
 
         _privateWebSocketUrl = $"{baseWssUrl}/v5/private";
         var basePublicWebSocketUrl = $"{baseWssUrl}/v5/public";
