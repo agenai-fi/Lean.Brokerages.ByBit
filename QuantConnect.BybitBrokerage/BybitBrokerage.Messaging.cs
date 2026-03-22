@@ -261,14 +261,28 @@ public partial class BybitBrokerage
         var tickerMessage = JsonConvert.DeserializeObject<BybitDataMessage<BybitTicker>>(message.ToString(), Settings);
         var ticker = tickerMessage.Data;
 
-        if (!ticker.OpenInterest.HasValue) return;
+        if (!ticker.OpenInterest.HasValue && !ticker.FundingRate.HasValue) return;
 
         var leanSymbol = _symbolMapper.GetLeanSymbol(ticker.Symbol, GetSecurityType(category), MarketName);
 
-        var tick = new OpenInterest(tickerMessage.Time, leanSymbol, ticker.OpenInterest.Value);
         lock (_tickLocker)
         {
-            _aggregator.Update(tick);
+            if (ticker.OpenInterest.HasValue)
+            {
+                _aggregator.Update(new OpenInterest(tickerMessage.Time, leanSymbol, ticker.OpenInterest.Value));
+            }
+
+            // Emit funding rate as MarginInterestRate so the engine's funding rate model can apply it
+            if (ticker.FundingRate.HasValue)
+            {
+                _aggregator.Update(new MarginInterestRate
+                {
+                    Symbol = leanSymbol,
+                    Time = tickerMessage.Time,
+                    InterestRate = ticker.FundingRate.Value,
+                    Value = ticker.FundingRate.Value
+                });
+            }
         }
     }
 
